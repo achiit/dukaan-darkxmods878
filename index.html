@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DARK X AURA</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+
+<style>
+body{
+background:#000510;
+color:#fff;
+font-family:Orbitron;
+text-align:center;
+margin:0;
+}
+
+/* LOGIN */
+#login{
+position:fixed;
+width:100%;
+height:100%;
+background:#000;
+display:flex;
+justify-content:center;
+align-items:center;
+flex-direction:column;
+}
+
+.login-box{
+background:#020b20;
+padding:30px;
+border-radius:20px;
+box-shadow:0 0 20px #00ffff33;
+}
+
+input{
+padding:12px;
+border:none;
+border-radius:10px;
+text-align:center;
+margin-bottom:10px;
+width:200px;
+}
+
+button{
+padding:10px 20px;
+border:none;
+background:#0056ff;
+color:#fff;
+border-radius:10px;
+cursor:pointer;
+}
+
+/* MAIN */
+.container{
+max-width:500px;
+margin:auto;
+padding:20px;
+display:none;
+}
+
+/* 🔥 NAME BOX */
+#nameBox{
+margin:15px auto;
+padding:15px;
+width:80%;
+max-width:300px;
+border-radius:20px;
+border:2px solid #00ffff55;
+background:rgba(0,20,40,0.5);
+box-shadow:0 0 20px #00ffff33;
+}
+
+#appName{
+font-size:20px;
+font-weight:bold;
+letter-spacing:2px;
+
+background: linear-gradient(90deg,#00ffff,#0056ff,#00ffff);
+background-size:200% auto;
+
+-webkit-background-clip:text;
+-webkit-text-fill-color:transparent;
+
+animation:moveGlow 3s linear infinite;
+}
+
+@keyframes moveGlow{
+0%{background-position:0%;}
+100%{background-position:200%;}
+}
+
+/* PERIOD */
+.period{
+color:#00ffff;
+margin:10px;
+}
+
+/* PREDICTION BOX */
+#predictionBox{
+margin:20px auto;
+padding:25px;
+width:80%;
+max-width:300px;
+border-radius:20px;
+border:2px solid #00ffff55;
+background:rgba(0,20,40,0.6);
+box-shadow:0 0 20px #00ffff33;
+}
+
+#predictionText{
+font-size:40px;
+font-weight:bold;
+}
+
+.red{color:#ff3e3e;}
+.green{color:#00e676;}
+
+/* TABLE */
+table{
+width:100%;
+font-size:12px;
+margin-top:20px;
+}
+
+td,th{
+padding:8px;
+border-bottom:1px solid #222;
+}
+</style>
+</head>
+
+<body>
+
+<!-- 🔊 SOUND -->
+<audio id="beep" src="https://www.soundjay.com/buttons/sounds/button-3.mp3"></audio>
+
+<!-- LOGIN -->
+<div id="login">
+  <div class="login-box">
+    <h2>DARK X AURA</h2>
+    <input type="password" id="pass" placeholder="ENTER PASSWORD">
+    <br>
+    <button id="loginBtn">ENTER</button>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="container" id="app">
+
+<!-- 🔥 NAME BOX -->
+<div id="nameBox">
+  <div id="appName">DARK X AURA</div>
+</div>
+
+<div class="period">NEXT PERIOD: <span id="period">--</span></div>
+
+<div id="predictionBox">
+  <div id="predictionText">--</div>
+</div>
+
+<table>
+<thead>
+<tr>
+<th>PERIOD</th>
+<th>PREDICT</th>
+<th>RESULT</th>
+<th>STATUS</th>
+</tr>
+</thead>
+<tbody id="table"></tbody>
+</table>
+
+</div>
+
+<script>
+
+// 🔊 SOUND
+function playSound(){
+let sound = document.getElementById("beep");
+sound.currentTime = 0;
+sound.play().catch(()=>{});
+}
+
+// LOGIN FIX
+document.addEventListener("DOMContentLoaded", () => {
+
+const passInput = document.getElementById("pass");
+const loginBtn = document.getElementById("loginBtn");
+
+function doLogin(){
+let pass = passInput.value.trim();
+
+if(pass === "111"){
+document.getElementById("login").style.display = "none";
+document.getElementById("app").style.display = "block";
+}else{
+alert("Wrong Password");
+}
+}
+
+loginBtn.addEventListener("click", doLogin);
+
+passInput.addEventListener("keypress", function(e){
+if(e.key === "Enter"){
+doLogin();
+}
+});
+
+});
+
+// API
+const API_URL = 'https://draw.ar-lottery01.com/WinGo/WinGo_30S/GetHistoryIssuePage.json';
+
+let historyLogs = [];
+let lastPeriod = "";
+
+// LOAD DATA
+async function loadData(){
+try{
+let res = await fetch(API_URL + '?t=' + Date.now());
+let json = await res.json();
+
+let list = json.data.list;
+let latest = list[0];
+
+let currentPeriod = latest.issueNumber;
+let nextPeriod = (BigInt(currentPeriod) + 1n).toString();
+
+document.getElementById("period").innerText = nextPeriod;
+
+if(nextPeriod !== lastPeriod){
+generatePrediction(list, nextPeriod);
+playSound();
+lastPeriod = nextPeriod;
+}
+
+verifyResult(list);
+
+}catch(e){console.log(e);}
+}
+
+// PREDICTION
+function generatePrediction(list, period){
+
+let nums = list.slice(0,5).map(x=>parseInt(x.number)||0);
+let sum = nums.reduce((a,b)=>a+b,0);
+
+let pred = (sum % 2 === 0) ? "Red" : "Green";
+
+let colors = nums.map(n=>n%2===0?"Red":"Green");
+if(colors.every(c=>c===colors[0])){
+pred = (colors[0]==="Red")?"Green":"Red";
+}
+
+let last = nums[0];
+if(last >= 8 && pred==="Red") pred="Green";
+if(last <= 1 && pred==="Green") pred="Red";
+
+let cls = pred==="Red"?"red":"green";
+
+document.getElementById("predictionText").innerHTML =
+`<span class="${cls}">${pred}</span>`;
+
+historyLogs.unshift({
+period:period,
+pred:pred,
+actual:"--",
+status:"Pending"
+});
+
+if(historyLogs.length>15) historyLogs.pop();
+
+renderTable();
+}
+
+// VERIFY
+function verifyResult(list){
+for(let log of historyLogs){
+if(log.status==="Pending"){
+let match = list.find(x=>x.issueNumber===log.period);
+if(match){
+let num = parseInt(match.number);
+let real = (num%2===0)?"Red":"Green";
+log.actual = num + " ("+real+")";
+log.status = (real===log.pred)?"Win":"Loss";
+}
+}
+}
+renderTable();
+}
+
+// TABLE
+function renderTable(){
+let html="";
+
+historyLogs.forEach(log=>{
+
+let predColor = log.pred==="Red"?"red":"green";
+
+let statusColor = "";
+if(log.status === "Win") statusColor = "green";
+else if(log.status === "Loss") statusColor = "red";
+else statusColor = "grey";
+
+html+=`
+<tr>
+<td>${log.period.slice(-5)}</td>
+<td class="${predColor}">${log.pred}</td>
+<td>${log.actual}</td>
+<td style="color:${statusColor}; font-weight:bold;">
+${log.status}
+</td>
+</tr>`;
+});
+
+document.getElementById("table").innerHTML = html;
+}
+
+// START
+setTimeout(()=>{
+setInterval(loadData, 1200);
+},500);
+
+</script>
+
+</body>
+</html>
